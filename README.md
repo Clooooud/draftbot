@@ -1,4 +1,4 @@
-# Discord Tourney Draft Bot
+# Discord Tourney Draft Bot
 
 I quickly made a simple Tourney Draft Bot that can be used to draft teams for a tournament.
 You can use it for Snake Drafts (reversing the order each round, I did not implement the regular resetting order, it's quite simple to do tho, I might do it)
