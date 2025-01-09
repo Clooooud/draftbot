@@ -90,6 +90,9 @@ async def next_pick(ctx: discord.ApplicationContext):
   current_run = next_pick.run_count
 
   for i in range(timer_duration):
+    if next_pick.run_count != current_run:
+      return
+
     current_time = timer_duration - i
     if current_time in TIMER_MILESTONES:
       embed = discord.Embed(
@@ -138,6 +141,7 @@ async def cancel(ctx):
   if draft is None:
     raise DraftError("No draft in progress!")
   
+  next_pick.run_count += 1
   draft = None
 
   await ctx.respond("Draft ended!")
