@@ -1,5 +1,5 @@
 import discord
-from draft import Draft, DraftError
+from draft import Draft, DraftError, recover_state
 import asyncio
 import dotenv
 import os
@@ -52,7 +52,7 @@ async def on_error(ctx, error):
 @draft_command.command(description="Starts a draft")
 async def start(
   ctx: discord.ApplicationContext, 
-  captains_id: discord.Option(str, description="The draft's captains Discord IDs separated by commas", required=True),
+  captains_id: discord.Option(str, description="The draft's captains Discord IDs separated by commas, format: USERNAME or USERNAME(PROXY_USERNAME)", required=True),
   team_size: discord.Option(int, description="The size of each team (counting the captain) (min: 2)", required=True, min_value=2),
   timer: discord.Option(int, description="The time in seconds each captain has to pick a player (min: 15 sec)", required=True, min_value=15),
 ):
@@ -88,6 +88,7 @@ async def next_pick(ctx: discord.ApplicationContext):
   await message.delete()
 
   current_run = next_pick.run_count
+  old_message = None
 
   for i in range(timer_duration):
     if next_pick.run_count != current_run:
@@ -100,8 +101,11 @@ async def next_pick(ctx: discord.ApplicationContext):
         description = f"{captain} has {current_time} seconds left to pick a player!",
         color = discord.Color.blurple()
       )
-      await ctx.respond(embed=embed)
-
+      message = await ctx.respond(embed=embed)
+      if old_message:
+        await old_message.delete()
+      old_message = message
+      
     await asyncio.sleep(1)
 
   # Skip the time's up embed if the next pick was called
@@ -115,6 +119,8 @@ async def next_pick(ctx: discord.ApplicationContext):
   )
 
   await ctx.respond(embed=embed)
+  if old_message:
+    await old_message.delete()
 
 @draft_command.command(description="Aborts/Restarts the timer for the current pick")
 async def abort(ctx: discord.ApplicationContext):
@@ -134,6 +140,26 @@ async def status(ctx):
   
   embed = draft.get_status_embed()
   await ctx.respond(embed=embed)
+
+@draft_command.command(description="Recovers the draft from the last state in case something breaks")
+async def recover(ctx):
+  global draft
+  if draft is not None:
+    raise DraftError("A draft is already in progress!")
+  
+  try:
+    draft = recover_state()
+  except FileNotFoundError:
+    raise DraftError("No draft to recover!")
+  
+  embed = discord.Embed(
+    title = "Draft recovered!",
+    description = "The draft has been recovered! Don't hesitate to check the status to see where it was left off!",
+    color = discord.Color.green()
+  )
+
+  await ctx.respond(embed=embed)
+
 
 @draft_command.command(description="Cancels the current draft")
 async def cancel(ctx):
