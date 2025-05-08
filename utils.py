@@ -27,3 +27,12 @@ def get_status_embed(draft):
     embed.set_author(name=f"{TOURNAMENT_NAME} Draft Bot", icon_url=TOURNAMENT_ICON)
 
     return embed
+
+def get_member(members, discord_id):
+    if not members:
+        return discord_id
+    return discord.utils.get(members, id=discord_id) or discord_id
+
+def get_mention(members, discord_id):
+    member = get_member(members, discord_id)
+    return member.mention if isinstance(member, discord.Member) else member

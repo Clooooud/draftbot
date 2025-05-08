@@ -90,7 +90,7 @@ async def add_proxy(
 
   embed = discord.Embed(
     title = trans("PROXY_ADDED_TITLE"),
-    description = trans("PROXY_ADDED_DESCRIPTION", proxy_id=proxy_id, captain_id=captain_id),
+    description = trans("PROXY_ADDED_DESCRIPTION", proxy_id=utils.get_mention(members, proxy_id), captain_id=utils.get_mention(members, captain_id)),
     color = discord.Color.green()
   )
 
@@ -142,8 +142,8 @@ async def end_draft(ctx):
 async def notify_next_pick(ctx, captain_id, original_captain_id):
   proxy = captain_id != original_captain_id
 
-  captain = discord.utils.get(members, name=captain_id) if members else None
-  original_captain = discord.utils.get(members, name=original_captain_id) if members else None
+  captain = utils.get_member(members, captain_id) if members else None
+  original_captain = utils.get_member(members, original_captain_id) if members else None
 
   captain_mention = captain.mention if captain else captain_id
   original_captain_mention = original_captain.mention if original_captain else original_captain_id
@@ -173,7 +173,7 @@ async def start_timer(ctx, captain_id, current_run):
     if current_time in TIMER_MILESTONES:
       embed = discord.Embed(
         title=trans("TIME_REMAINING_TITLE"),
-        description=trans("TIME_REMAINING_DESCRIPTION", captain_id=captain_id, current_time=current_time),
+        description=trans("TIME_REMAINING_DESCRIPTION", captain_id=utils.get_mention(members, captain_id), current_time=current_time),
         color=discord.Color.blurple()
       )
       message = await ctx.respond(embed=embed)
@@ -190,7 +190,7 @@ async def start_timer(ctx, captain_id, current_run):
 async def time_up(ctx, captain_id, old_message):
   embed = discord.Embed(
     title=trans("TIMES_UP_TITLE"),
-    description=trans("TIMES_UP_DESCRIPTION", captain_id=captain_id),
+    description=trans("TIMES_UP_DESCRIPTION", captain_id=utils.get_mention(members, captain_id)),
     color=discord.Color.red()
   )
 
