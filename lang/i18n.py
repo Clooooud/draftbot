@@ -10,6 +10,6 @@ def translate(key, **kwargs):
     """
     translation = getattr(lang, key, key)
     for k, v in kwargs.items():
-        translation = translation.replace(f"{{{k}}}", str(v))
+        translation = translation.replace("{{" + k + "}}", str(v))
     return translation
 
