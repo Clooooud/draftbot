@@ -9,8 +9,10 @@ The bot is purely manual, you need to type the `/draft next` command for each te
 ## Usage
 
 1. Create a Discord Bot and get the token
-2. Invite the bot to your server
-3. Rename the `example.env` file to `.env` and fill in the token
-4. Install the requirements with `pip install -r requirements.txt`
-5. Run the bot with `python main.py`
-6. `/draft` !!!
+2. In the Bot settings, enable the `MESSAGE CONTENT INTENT` and `SERVER MEMBERS INTENT`
+3. Invite the bot to your server
+4. Rename the `example.env` file to `.env` and fill in the token
+5. Rename the `settings.example.py` file to `settings.py` and fill in the settings
+6. Install the requirements with `pip install -r requirements.txt`
+7. Run the bot with `python main.py`
+8. `/draft` !!!
