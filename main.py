@@ -3,14 +3,13 @@ from draft import Draft, DraftError, recover_state
 import asyncio
 import dotenv
 import os
+import utils
+from lang.i18n import translate as trans
 
 dotenv.load_dotenv()
 token = str(os.getenv('DISCORD_TOKEN'))
 
-GUILD_ID = 1247849595967508511
-ADMIN_ROLES = [1247863670948495391, 1247863541998948413]
-
-TIMER_MILESTONES = [60, 30, 10, 5]
+from settings import *
 
 intents = discord.Intents.default()
 intents.members = True
@@ -31,8 +30,8 @@ draft_command = bot.create_group("draft", "Draft-related commands", guild_ids=[G
 @draft_command.error
 async def on_error(ctx, error):
   embed = discord.Embed(
-    title="Error!",
-    description="An error occurred while executing the command!",
+    title=trans("ERROR_TITLE"),
+    description=trans("ERROR_DESCRIPTION"),
     color=discord.Color.red()
   )
 
@@ -45,7 +44,7 @@ async def on_error(ctx, error):
     print(error)
 
   if isinstance(error, discord.errors.CheckFailure):
-    embed.description = "You do not have permission to use draft commands!"
+    embed.description = trans("ERROR_PERMISSION")
 
   await ctx.respond(embed=embed)
 
@@ -57,16 +56,22 @@ async def start(
   timer: discord.Option(int, description="The time in seconds each captain has to pick a player (min: 15 sec)", required=True, min_value=15),
 ):
   if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
-    raise DraftError("You do not have the permission for this command!")
+    raise DraftError(trans("ERROR_PERMISSION"))
 
   global draft
   
   if draft is not None:
-    raise DraftError("A draft is already in progress!")
+    raise DraftError(trans("DRAFT_ALREADY_IN_PROGRESS"))
   
   draft = Draft(captains_id.split(','), team_size, timer)
 
-  await ctx.respond(embed=draft.start())
+  draft.start()
+
+  embed = utils.get_status_embed(draft)
+  embed.title = trans("DRAFT_STARTED")
+  embed.color = discord.Color.green()
+
+  await ctx.respond(embed=embed)
 
 @draft_command.command(description="Adds a proxy to a captain")
 async def add_proxy(
@@ -75,109 +80,165 @@ async def add_proxy(
     proxy_id: discord.Option(str, description="Proxy's Discord Tag", required=True)
 ):
   if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
-    raise DraftError("You do not have the permission for this command!")
+    raise DraftError(trans("ERROR_PERMISSION"))
 
   global draft
   if draft is None:
-    raise DraftError("No draft in progress!")
+    raise DraftError(trans("NO_DRAFT_IN_PROGRESS"))
   
-  embed = draft.add_proxy(captain_id, proxy_id)
+  draft.add_proxy(captain_id, proxy_id)
+
+  embed = discord.Embed(
+    title = trans("PROXY_ADDED_TITLE"),
+    description = trans("PROXY_ADDED_DESCRIPTION", proxy_id=proxy_id, captain_id=captain_id),
+    color = discord.Color.green()
+  )
+
   await ctx.respond(embed=embed)
 
 
 @draft_command.command(name="next", description="Starts the timer for the next pick")
 async def next_pick(ctx: discord.ApplicationContext):
   if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
-    raise DraftError("You do not have the permission for this command!")
+    raise DraftError(trans("ERROR_PERMISSION"))
 
   next_pick.run_count += 1
   global draft
   if draft is None:
-    raise DraftError("No draft in progress!")
+    raise DraftError(trans("NO_DRAFT_IN_PROGRESS"))
 
   try:
-    embed, captain, timer_duration = draft.next_pick(members)
+    result = draft.next_pick()
   except DraftError as error:
     raise error
-  
-  await ctx.respond(embed=embed)
 
-  if timer_duration == -1:
-    draft = None
+  if result is None:
+    await end_draft(ctx)
     return
-
-  message = await ctx.send(captain)
-  await asyncio.sleep(1)
-  await message.delete()
+  
+  captain_id, original_captain_id = result
+  await notify_next_pick(ctx, captain_id, original_captain_id)
 
   current_run = next_pick.run_count
+  await start_timer(ctx, captain_id, current_run)
+
+
+async def end_draft(ctx):
+  embed = discord.Embed(
+    title=trans("DRAFT_ENDED_TITLE"),
+    description=trans("DRAFT_ENDED_DESCRIPTION"),
+    color=discord.Color.red()
+  )
+  await ctx.respond(embed=embed)
+
+  # Delete state file from dir
+  if os.path.exists("state.txt"):
+    os.remove("state.txt")
+
+  global draft
+  draft = None
+
+
+async def notify_next_pick(ctx, captain_id, original_captain_id):
+  proxy = captain_id != original_captain_id
+
+  captain = discord.utils.get(members, name=captain_id) if members else None
+  original_captain = discord.utils.get(members, name=original_captain_id) if members else None
+
+  captain_mention = captain.mention if captain else captain_id
+  original_captain_mention = original_captain.mention if original_captain else original_captain_id
+  proxy_string = trans("NEXT_PICK_PROXY", captain_id=original_captain_mention) if proxy else ""
+
+  embed = discord.Embed(
+    title=trans("NEXT_PICK_TITLE"),
+    description=trans("NEXT_PICK_DESCRIPTION", captain_mention=captain_mention, proxy_string=proxy_string, draft_timer=draft.timer),
+    color=discord.Color.green()
+  )
+  await ctx.respond(embed=embed)
+
+  if captain:
+    message = await ctx.send(captain)
+    await asyncio.sleep(1)
+    await message.delete()
+
+
+async def start_timer(ctx, captain_id, current_run):
   old_message = None
 
-  for i in range(timer_duration):
+  for i in range(draft.timer):
     if next_pick.run_count != current_run:
       return
 
-    current_time = timer_duration - i
+    current_time = draft.timer - i
     if current_time in TIMER_MILESTONES:
       embed = discord.Embed(
-        title = "Time Remaining",
-        description = f"{captain} has {current_time} seconds left to pick a player!",
-        color = discord.Color.blurple()
+        title=trans("TIME_REMAINING_TITLE"),
+        description=trans("TIME_REMAINING_DESCRIPTION", captain_id=captain_id, current_time=current_time),
+        color=discord.Color.blurple()
       )
       message = await ctx.respond(embed=embed)
       if old_message:
         await old_message.delete()
       old_message = message
-      
+
     await asyncio.sleep(1)
 
-  # Skip the time's up embed if the next pick was called
-  if next_pick.run_count != current_run:
-    return
+  if next_pick.run_count == current_run:
+    await time_up(ctx, captain_id, old_message)
 
+
+async def time_up(ctx, captain_id, old_message):
   embed = discord.Embed(
-    title = "Time's up!",
-    description = f"{captain}'s time to pick is over!",
-    color = discord.Color.red()
+    title=trans("TIMES_UP_TITLE"),
+    description=trans("TIMES_UP_DESCRIPTION", captain_id=captain_id),
+    color=discord.Color.red()
   )
 
   await ctx.respond(embed=embed)
+
   if old_message:
     await old_message.delete()
 
 @draft_command.command(description="Aborts/Restarts the timer for the current pick")
 async def abort(ctx: discord.ApplicationContext):
   if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
-    raise DraftError("You do not have the permission for this command!")
+    raise DraftError(trans("ERROR_PERMISSION"))
 
   global draft
   if draft is None:
-    raise DraftError("No draft in progress!")
+    raise DraftError(trans("NO_DRAFT_IN_PROGRESS"))
   
-  embed = draft.abort_timer()
+  draft.abort_timer()
+
+  embed = discord.Embed(
+    title = trans("TIMER_ABORTED_TITLE"),
+    description = trans("TIMER_ABORTED_DESCRIPTION"),
+    color = discord.Color.red()
+  )
+
   next_pick.run_count += 1
   await ctx.respond(embed=embed)
 
 @draft_command.command(description="Shows the current draft status")
 async def status(ctx):
   if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
-    raise DraftError("You do not have the permission for this command!")
+    raise DraftError(trans("ERROR_PERMISSION"))
   
   global draft
   if draft is None:
-    raise DraftError("No draft in progress!")
+    raise DraftError(trans("NO_DRAFT_IN_PROGRESS"))
   
-  embed = draft.get_status_embed()
+  embed = utils.get_status_embed(draft)
   await ctx.respond(embed=embed)
 
 @draft_command.command(description="Recovers the draft from the last state in case something breaks")
 async def recover(ctx):
   if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
-    raise DraftError("You do not have the permission for this command!")
+    raise DraftError(trans("ERROR_PERMISSION"))
 
   global draft
   if draft is not None:
-    raise DraftError("A draft is already in progress!")
+    raise DraftError(trans("DRAFT_ALREADY_IN_PROGRESS"))
   
   try:
     draft = recover_state()
@@ -185,8 +246,8 @@ async def recover(ctx):
     raise DraftError("No draft to recover!")
   
   embed = discord.Embed(
-    title = "Draft recovered!",
-    description = "The draft has been recovered! Don't hesitate to check the status to see where it was left off!",
+    title = trans("DRAFT_STATUS_RECOVERED_TITLE"),
+    description = trans("DRAFT_STATUS_RECOVERED_DESCRIPTION"),
     color = discord.Color.green()
   )
 
@@ -196,22 +257,23 @@ async def recover(ctx):
 @draft_command.command(description="Cancels the current draft")
 async def cancel(ctx):
   if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
-    raise DraftError("You do not have the permission for this command!")
+    raise DraftError(trans("ERROR_PERMISSION"))
 
   global draft
   if draft is None:
-    raise DraftError("No draft in progress!")
+    raise DraftError(trans("NO_DRAFT_IN_PROGRESS"))
   
   next_pick.run_count += 1
   draft = None
 
-  await ctx.respond("Draft ended!")
+  await ctx.respond("DRAFT_ENDED_MESSAGE")
 
 for command in draft_command.subcommands:
   command.error(on_error)
 
 next_pick.run_count = -1
 
-draft = recover_state()
+if AUTO_RECOVER:
+  draft = recover_state()
 
 bot.run(token)
