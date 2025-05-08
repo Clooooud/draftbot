@@ -56,6 +56,9 @@ async def start(
   team_size: discord.Option(int, description="The size of each team (counting the captain) (min: 2)", required=True, min_value=2),
   timer: discord.Option(int, description="The time in seconds each captain has to pick a player (min: 15 sec)", required=True, min_value=15),
 ):
+  if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
+    raise DraftError("You do not have the permission for this command!")
+
   global draft
   
   if draft is not None:
@@ -65,8 +68,28 @@ async def start(
 
   await ctx.respond(embed=draft.start())
 
+@draft_command.command(description="Adds a proxy to a captain")
+async def add_proxy(
+    ctx, 
+    captain_id: discord.Option(str, description="Captain's Discord Tag", required=True), 
+    proxy_id: discord.Option(str, description="Proxy's Discord Tag", required=True)
+):
+  if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
+    raise DraftError("You do not have the permission for this command!")
+
+  global draft
+  if draft is None:
+    raise DraftError("No draft in progress!")
+  
+  embed = draft.add_proxy(captain_id, proxy_id)
+  await ctx.respond(embed=embed)
+
+
 @draft_command.command(name="next", description="Starts the timer for the next pick")
 async def next_pick(ctx: discord.ApplicationContext):
+  if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
+    raise DraftError("You do not have the permission for this command!")
+
   next_pick.run_count += 1
   global draft
   if draft is None:
@@ -124,6 +147,9 @@ async def next_pick(ctx: discord.ApplicationContext):
 
 @draft_command.command(description="Aborts/Restarts the timer for the current pick")
 async def abort(ctx: discord.ApplicationContext):
+  if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
+    raise DraftError("You do not have the permission for this command!")
+
   global draft
   if draft is None:
     raise DraftError("No draft in progress!")
@@ -134,6 +160,9 @@ async def abort(ctx: discord.ApplicationContext):
 
 @draft_command.command(description="Shows the current draft status")
 async def status(ctx):
+  if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
+    raise DraftError("You do not have the permission for this command!")
+  
   global draft
   if draft is None:
     raise DraftError("No draft in progress!")
@@ -143,6 +172,9 @@ async def status(ctx):
 
 @draft_command.command(description="Recovers the draft from the last state in case something breaks")
 async def recover(ctx):
+  if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
+    raise DraftError("You do not have the permission for this command!")
+
   global draft
   if draft is not None:
     raise DraftError("A draft is already in progress!")
@@ -163,6 +195,9 @@ async def recover(ctx):
 
 @draft_command.command(description="Cancels the current draft")
 async def cancel(ctx):
+  if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
+    raise DraftError("You do not have the permission for this command!")
+
   global draft
   if draft is None:
     raise DraftError("No draft in progress!")
@@ -176,5 +211,7 @@ for command in draft_command.subcommands:
   command.error(on_error)
 
 next_pick.run_count = -1
+
+draft = recover_state()
 
 bot.run(token)

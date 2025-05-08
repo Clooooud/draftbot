@@ -177,3 +177,28 @@ class Draft:
     )
 
     return embed
+  
+  def add_proxy(self, captain_id, proxy_id):
+    if self.finished:
+      raise DraftError("The draft is already over!")
+
+    if captain_id not in self.captain_ids:
+      raise DraftError("Captain not found!")
+
+    if proxy_id in self.captain_ids:
+      raise DraftError(f"{proxy_id} is already a captain!")
+    
+    if f"{captain_id}({proxy_id})" in self.captain_ids:
+      raise DraftError(f"{proxy_id} is already a proxy for this captain!")
+
+    self.captain_ids[self.captain_ids.index(captain_id)] = f"{captain_id}({proxy_id})"
+
+    embed = discord.Embed(
+      title = "Proxy Added",
+      description = f"{proxy_id} has been added as a proxy for {captain_id}!",
+      color = discord.Color.green()
+    )
+
+    self.save_state()
+
+    return embed
