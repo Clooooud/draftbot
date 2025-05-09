@@ -1,7 +1,6 @@
 from typing import List
 import re
 from lang.i18n import translate as trans
-import utils
 
 class DraftError(Exception):
   pass
@@ -17,11 +16,8 @@ def recover_state():
         timer=state["timer"]
       )
       draft.current_index = state["current_index"]
-      draft.delta = state["delta"]
-      draft.rotation_count = state["rotation_count"]
+      draft.queue = state["queue"]
       draft.old_index = state["old_index"]
-      draft.old_delta = state["old_delta"]
-      draft.old_rotation_count = state["old_rotation_count"]
       draft.finished = state["finished"]
       return draft
   except FileNotFoundError:
@@ -33,13 +29,10 @@ class Draft:
   team_size: int
   timer: int
 
-  current_index = 0
-  delta = 1
-  rotation_count = 0
+  queue: List[str]
 
+  current_index = 0
   old_index = 0
-  old_delta = 1
-  old_rotation_count = 0
 
   finished = False
 
@@ -52,14 +45,11 @@ class Draft:
     with open("state.txt", "+w") as file:
       state = {
         "captain_ids": self.captain_ids,
+        "queue": self.queue,
         "team_size": self.team_size,
         "timer": self.timer,
         "current_index": self.current_index,
-        "delta": self.delta,
-        "rotation_count": self.rotation_count,
         "old_index": self.old_index,
-        "old_delta": self.old_delta,
-        "old_rotation_count": self.old_rotation_count,
         "finished": self.finished
       }
       file.write(str(state))
@@ -71,8 +61,23 @@ class Draft:
       return match.group(1), match.group(2)
     return username, None
 
+  def get_effective_index(self, index):
+    if (index // len(self.captain_ids)) % 2 == 0 :
+      return index % len(self.captain_ids)
+    else:
+      return len(self.captain_ids) - (index % len(self.captain_ids)) - 1
+
   def start(self):
-    self.current_index = -1
+    self.current_index = 0
+    self.old_index = 0
+    
+    self.queue = []
+    for i in range(self.team_size-1):
+      reverse = 1
+      if i % 2 == 1:
+        reverse = -1
+      self.queue += self.captain_ids[::reverse]
+
     self.save_state()
   
   def next_pick(self):
@@ -80,32 +85,23 @@ class Draft:
       raise DraftError(trans("DRAFT_ALREADY_OVER"))
     
     self.old_index = self.current_index
-    self.old_delta = self.delta
-    self.old_rotation_count = self.rotation_count
 
-    if self.current_index == (len(self.captain_ids)-1 if self.delta == 1 else 0):
-      self.delta *= -1
-      self.rotation_count += 1
-      self.current_index -= self.delta
-
-    if self.rotation_count == self.team_size-1:
+    if self.current_index > len(self.queue) - 1:
       self.finished = True
       return None
 
-    self.current_index += self.delta
-
-    original_captain_id = self.captain_ids[self.current_index]
+    original_captain_id = self.queue[self.current_index]
     original_captain_id, proxy_id = self.get_proxy_username(original_captain_id)
     captain_id = original_captain_id
     if proxy_id:
       captain_id = proxy_id
+
+    self.current_index += 1
     
     return captain_id, original_captain_id
   
   def abort_timer(self):
-    self.delta = self.old_delta
     self.current_index = self.old_index
-    self.rotation_count = self.old_rotation_count
   
   def add_proxy(self, captain_id, proxy_id):
     if self.finished:

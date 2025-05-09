@@ -266,7 +266,7 @@ async def cancel(ctx):
   next_pick.run_count += 1
   draft = None
 
-  await ctx.respond("DRAFT_ENDED_MESSAGE")
+  await ctx.respond(trans("DRAFT_ENDED_MESSAGE"))
 
 for command in draft_command.subcommands:
   command.error(on_error)
