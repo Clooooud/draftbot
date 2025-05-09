@@ -62,7 +62,7 @@ class Draft:
     return username, None
 
   def get_effective_index(self, index):
-    if (index // len(self.captain_ids)) % 2 == 0 :
+    if (index // len(self.captain_ids)) % 2 == 0:
       return index % len(self.captain_ids)
     else:
       return len(self.captain_ids) - (index % len(self.captain_ids)) - 1
@@ -79,6 +79,21 @@ class Draft:
       self.queue += self.captain_ids[::reverse]
 
     self.save_state()
+
+  def push_back(self):
+    # the current index is pushed to the back of the current part of the queue
+    original_captain_id = self.queue[self.old_index]
+    original_captain_id, proxy_id = self.get_proxy_username(original_captain_id)
+    captain_id = original_captain_id
+    if proxy_id:
+      captain_id = proxy_id
+
+    self.queue.insert(((self.old_index // len(self.captain_ids)) + 1) * len(self.captain_ids), self.queue[self.old_index])
+    del self.queue[self.old_index]
+    self.current_index = self.old_index
+    self.save_state()
+
+    return captain_id, original_captain_id
   
   def next_pick(self):
     if self.finished:
@@ -88,6 +103,7 @@ class Draft:
 
     if self.current_index > len(self.queue) - 1:
       self.finished = True
+      self.save_state()
       return None
 
     original_captain_id = self.queue[self.current_index]
@@ -97,11 +113,13 @@ class Draft:
       captain_id = proxy_id
 
     self.current_index += 1
+    self.save_state()
     
     return captain_id, original_captain_id
   
   def abort_timer(self):
     self.current_index = self.old_index
+    self.save_state()
   
   def add_proxy(self, captain_id, proxy_id):
     if self.finished:

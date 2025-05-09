@@ -157,7 +157,7 @@ async def notify_next_pick(ctx, captain_id, original_captain_id):
   await ctx.respond(embed=embed)
 
   if captain:
-    message = await ctx.send(captain)
+    message = await ctx.send(captain_mention)
     await asyncio.sleep(1)
     await message.delete()
 
@@ -249,6 +249,37 @@ async def recover(ctx):
     title = trans("DRAFT_STATUS_RECOVERED_TITLE"),
     description = trans("DRAFT_STATUS_RECOVERED_DESCRIPTION"),
     color = discord.Color.green()
+  )
+
+  await ctx.respond(embed=embed)
+
+@draft_command.command(description="Pushes back the current pick to the end of the order of the round")
+async def push_back(ctx):
+  if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
+    raise DraftError(trans("ERROR_PERMISSION"))
+  
+  global draft
+  if draft is None:
+    raise DraftError(trans("NO_DRAFT_IN_PROGRESS"))
+  
+  captain_id, original_captain_id = draft.push_back()
+  
+  proxy = captain_id != original_captain_id
+
+  captain = utils.get_member(members, captain_id) if members else None
+  original_captain = utils.get_member(members, original_captain_id) if members else None
+
+  print(captain_id, original_captain_id)
+
+  captain_mention = captain.mention if captain else captain_id
+  original_captain_mention = original_captain.mention if original_captain else original_captain_id
+
+  proxy_string = trans("NEXT_PICK_PROXY", captain_id=original_captain_mention) if proxy else ""
+
+  embed = discord.Embed(
+    title=trans("PUSH_BACK_TITLE"),
+    description=trans("PUSH_BACK_DESCRIPTION", captain_mention=captain_mention, proxy_string=proxy_string),
+    color=discord.Color.green()
   )
 
   await ctx.respond(embed=embed)

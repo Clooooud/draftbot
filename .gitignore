@@ -1,6 +1,7 @@
 /venv/
 .env
-/__pycache__/
+__pycache__/
+lang/__pycache__/
 state.txt
 settings.py
 *.pyc
