@@ -2,7 +2,8 @@
 
 I quickly made a simple Tourney Draft Bot that can be used to draft teams for a tournament.
 
-You can use it for Snake Drafts (reversing the order each round, I did not implement the regular resetting order, it's quite simple to do tho, I might do it)
+You can use it for snake order drafts (reversing the order each round).
+If you ever need a different order, you can just create an issue or send me a DM on Discord @nunuage
 
 The bot is purely manual, you need to type the `/draft next` command for each team pick 
 
