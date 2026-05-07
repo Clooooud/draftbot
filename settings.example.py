@@ -6,6 +6,9 @@ ADMIN_ROLES = [1247863670948495391, 1247863541998948413]
 # For each milestone, the bot will send a message in the channel
 TIMER_MILESTONES = [60, 30, 10, 5]
 
+# Order of the captains in the draft ("snake", "repeated")
+ORDERING_METHOD = "snake"
+
 # This will automatically recover the bot if it crashes using the last state saved inside the state.txt file
 AUTO_RECOVER = True
 

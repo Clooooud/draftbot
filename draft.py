@@ -1,6 +1,7 @@
 from typing import List
 import re
 from lang.i18n import translate as trans
+from settings import ORDERING_METHOD
 
 class DraftError(Exception):
   pass
@@ -66,18 +67,30 @@ class Draft:
       return index % len(self.captain_ids)
     else:
       return len(self.captain_ids) - (index % len(self.captain_ids)) - 1
+    
+  def _generate_queue_snake(self):
+    for i in range(self.team_size-1):
+      reverse = -1 if i % 2 == 1 else 1
+      self.queue += self.captain_ids[::reverse]
+
+  def _generate_queue_repeated(self):
+    for i in range(self.team_size-1):
+      self.queue += self.captain_ids
+    
+  def _generate_queue(self):
+    self.queue = []
+    if ORDERING_METHOD == "snake":
+      self._generate_queue_snake()
+    elif ORDERING_METHOD == "repeated":
+      self._generate_queue_repeated()
+    else:
+      raise DraftError(trans("INVALID_ORDERING_METHOD", method=ORDERING_METHOD))
 
   def start(self):
     self.current_index = 0
     self.old_index = 0
     
-    self.queue = []
-    for i in range(self.team_size-1):
-      reverse = 1
-      if i % 2 == 1:
-        reverse = -1
-      self.queue += self.captain_ids[::reverse]
-
+    self._generate_queue()
     self.save_state()
 
   def push_back(self):
