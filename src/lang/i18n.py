@@ -1,7 +1,7 @@
 import importlib
 from settings import LANGUAGE
 
-lang_module = f"lang.{LANGUAGE}" if LANGUAGE in ["fr", "en"] else "lang.en"
+lang_module = f"src.lang.{LANGUAGE}" if LANGUAGE in ["fr", "en"] else "src.lang.en"
 lang = importlib.import_module(lang_module)
 
 def translate(key, **kwargs):

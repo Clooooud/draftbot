@@ -2,6 +2,8 @@
 .env
 __pycache__/
 lang/__pycache__/
-state.txt
+state.json
 settings.py
 *.pyc
+service_account.json
+draft.csv
