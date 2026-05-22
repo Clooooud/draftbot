@@ -409,7 +409,7 @@ async def undo(ctx):
   embed = discord.Embed(
     title=trans("UNDO_TITLE"),
     description=trans(last_action.undo_string()),
-    color=discord.Color.green()
+    color=discord.Color.blurple()
   )
 
   await ctx.respond(embed=embed)
