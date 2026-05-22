@@ -391,6 +391,28 @@ async def push_back(ctx):
 
   await ctx.respond(embed=embed)
 
+@draft_command.command(name="undo", description="Undoes the last action")
+async def undo(ctx):
+  if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
+    raise DraftError(trans("ERROR_PERMISSION"))
+
+  global draft
+  if draft is None:
+    raise DraftError(trans("NO_DRAFT_IN_PROGRESS"))
+
+  if not draft.history:
+    raise DraftError(trans("NO_ACTIONS_TO_UNDO"))
+
+  last_action = draft.history[0]
+  draft.undo_action(last_action)
+
+  embed = discord.Embed(
+    title=trans("UNDO_TITLE"),
+    description=trans(last_action.undo_string()),
+    color=discord.Color.green()
+  )
+
+  await ctx.respond(embed=embed)
 
 @draft_command.command(description="Cancels the current draft")
 async def cancel(ctx):
@@ -421,13 +443,12 @@ if not draft:
     for line in lines[1:]:
       if line.strip():
         parts = line.strip().split(",")
-        osu_id = int(parts[0])
-        osu_playername = parts[1]
-        discord_id = parts[2]
-        is_captain = parts[3].lower() == "true"
-        proxy_discord_id = parts[4] if len(parts) > 4 and parts[4].strip() else None
-        rank = int(parts[5]) if len(parts) > 5 and parts[5].strip() else None
-        player_infos.append((osu_id, osu_playername, discord_id, is_captain, proxy_discord_id, rank))
+        osu_playername = parts[0]
+        discord_id = parts[1]
+        is_captain = parts[2].lower() == "true"
+        proxy_discord_id = parts[3] if parts[3].strip() else None
+        rank = int(parts[4])
+        player_infos.append((osu_playername, discord_id, is_captain, proxy_discord_id, rank))
 
     draft = create_draft(player_infos, team_size=7, timer=90)
     draft.start()

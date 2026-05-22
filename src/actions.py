@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from src.lang.i18n import translate as trans
 
 class Action(ABC):
 
@@ -12,6 +13,10 @@ class Action(ABC):
     def undo(self):
         self._do_undo()
         self.undone = True
+
+    @abstractmethod
+    def undo_string(self):
+        pass
 
     @abstractmethod
     def _do_exec(self):
@@ -38,6 +43,9 @@ class PickAction(Action):
         self.player.team = None
         self.draft.current_index -= 1
 
+    def undo_string(self):
+        return trans("PICK_UNDO_STRING", captain=self.team.captain.display_username(), player=self.player.display_username())
+
 
 class PushBackAction(Action):
     def __init__(self, draft, team):
@@ -54,6 +62,9 @@ class PushBackAction(Action):
         self.draft.queue.insert(self.original_index, self.draft.queue[current_index])
         del self.draft.queue[current_index + 1]
 
+    def undo_string(self):
+        return trans("PUSH_BACK_UNDO_STRING", captain=self.team.captain.display_username())
+
 class FinishDraftAction(Action):
     def __init__(self, draft):
         self.draft = draft
@@ -63,6 +74,9 @@ class FinishDraftAction(Action):
 
     def _do_undo(self):
         self.draft.finished = False
+
+    def undo_string(self):
+        return trans("FINISH_DRAFT_UNDO_STRING")
 
 class AddProxyAction(Action):
     def __init__(self, team, proxy_id):
@@ -74,3 +88,6 @@ class AddProxyAction(Action):
 
     def _do_undo(self):
         self.team.proxy_discord_id = None
+
+    def undo_string(self):
+        return trans("ADD_PROXY_UNDO_STRING", captain=self.team.captain.display_username(), proxy_id=self.proxy_id)

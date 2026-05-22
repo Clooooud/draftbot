@@ -19,7 +19,6 @@ def recover_state():
       players = []
       for player_state in state["players"]:
         player = Player(discord_id=player_state["discord_id"])
-        player.player_id = player_state["player_id"]
         player.player_username = player_state["player_username"]
         player.is_captain = player_state["is_captain"]
         player.rank = player_state["rank"]
@@ -53,9 +52,8 @@ def create_draft(player_infos: List[tuple], team_size: int, timer: int):
   teams = []
   players = []
   for player_info in player_infos:
-    osu_id, osu_playername, discord_id, is_captain, proxy_discord_id, rank = player_info
+    osu_playername, discord_id, is_captain, proxy_discord_id, rank = player_info
     player = Player(discord_id=discord_id)
-    player.player_id = osu_id
     player.player_username = osu_playername
     player.rank = rank
     players.append(player)
