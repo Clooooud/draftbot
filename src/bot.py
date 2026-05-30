@@ -53,37 +53,11 @@ async def on_error(ctx, error):
 
   await ctx.respond(embed=embed, ephemeral=ephemeral)
 
-@draft_command.command(description="Starts a draft")
-async def start(
-  ctx: discord.ApplicationContext, 
-  # TODO: Unsure, maybe the best way to configure the draft is through csv/json files
-  # captains_id: discord.Option(str, description="The draft's captains Discord IDs separated by commas, format: USERNAME or USERNAME(PROXY_USERNAME)", required=True),
-  # team_size: discord.Option(int, description="The size of each team (counting the captain) (min: 2)", required=True, min_value=2),
-  # timer: discord.Option(int, description="The time in seconds each captain has to pick a player (min: 15 sec)", required=True, min_value=15),
-):
-  if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
-    raise DraftError(trans("ERROR_PERMISSION"))
-
-  global draft
-  
-  if draft is not None:
-    raise DraftError(trans("DRAFT_ALREADY_IN_PROGRESS"))
-  
-  draft = Draft(captains_id.split(','), team_size, timer)
-
-  draft.start()
-
-  embed = utils.get_status_embed(draft)
-  embed.title = trans("DRAFT_STARTED")
-  embed.color = discord.Color.green()
-
-  await ctx.respond(embed=embed)
-
 @draft_command.command(description="Adds a proxy to a captain")
 async def add_proxy(
     ctx, 
-    captain_id: discord.Option(str, description="Captain's Discord Tag", required=True), 
-    proxy_id: discord.Option(str, description="Proxy's Discord Tag", required=True)
+    captain: discord.Option(discord.Member, description="Captain's Discord Tag", required=True), 
+    proxy: discord.Option(discord.Member, description="Proxy's Discord Tag", required=True)
 ):
   if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
     raise DraftError(trans("ERROR_PERMISSION"))
@@ -92,11 +66,11 @@ async def add_proxy(
   if draft is None:
     raise DraftError(trans("NO_DRAFT_IN_PROGRESS"))
   
-  draft.add_proxy(captain_id, proxy_id)
+  draft.add_proxy(captain.name, proxy.name)
 
   embed = discord.Embed(
     title = trans("PROXY_ADDED_TITLE"),
-    description = trans("PROXY_ADDED_DESCRIPTION", proxy_id=utils.get_mention(members, proxy_id), captain_id=utils.get_mention(members, captain_id)),
+    description = trans("PROXY_ADDED_DESCRIPTION", proxy_id=utils.get_mention(members, proxy.name), captain_id=utils.get_mention(members, captain.name)),
     color = discord.Color.green()
   )
 
@@ -199,7 +173,7 @@ async def list_players(ctx: discord.ApplicationContext):
     return
 
   embed = discord.Embed(
-    title = trans("DRAFTABLE_PLAYERS"),
+    title = trans("DRAFTABLE_PLAYERS", count=len(draftable_players)),
     description="- " + ("\n- ".join((f"**{player.display_username()}**" + (f" (#{player.rank})" if player.rank is not None else "")) for player in draftable_players)),
     color = discord.Color.blurple()
   )
@@ -307,37 +281,17 @@ async def time_up(ctx, captain_mention, old_message):
   if old_message:
     await old_message.delete()
 
-# @draft_command.command(description="Aborts/Restarts the timer for the current pick")
-# async def abort(ctx: discord.ApplicationContext):
-#   if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
-#     raise DraftError(trans("ERROR_PERMISSION"))
-
-#   global draft
-#   if draft is None:
-#     raise DraftError(trans("NO_DRAFT_IN_PROGRESS"))
-  
-#   draft.abort_timer()
-
-#   embed = discord.Embed(
-#     title = trans("TIMER_ABORTED_TITLE"),
-#     description = trans("TIMER_ABORTED_DESCRIPTION"),
-#     color = discord.Color.red()
-#   )
-
-#   start_pick.run_count += 1
-#   await ctx.respond(embed=embed)
-
 @draft_command.command(description="Shows the current draft status")
-async def status(ctx):
-  if not any(role.id in ADMIN_ROLES for role in ctx.author.roles):
-    raise DraftError(trans("ERROR_PERMISSION"))
-  
+async def status(ctx, is_ephemeral: bool = True):
   global draft
   if draft is None:
     raise DraftError(trans("NO_DRAFT_IN_PROGRESS"))
   
   embed = utils.get_status_embed(draft)
-  await ctx.respond(embed=embed)
+
+  is_ephemeral = is_ephemeral or not any(role.id in ADMIN_ROLES for role in ctx.author.roles)
+
+  await ctx.respond(embed=embed, ephemeral=is_ephemeral)
 
 @draft_command.command(description="Recovers the draft from the last state in case something breaks")
 async def recover(ctx):
@@ -413,6 +367,25 @@ async def undo(ctx):
   )
 
   await ctx.respond(embed=embed)
+
+@draft_command.command(name="help", description="Shows a help message with all the commands captains can use")
+async def user_help(ctx, is_ephemeral: bool = True):
+  embed = discord.Embed(
+    title=trans("USER_HELP_TITLE"),
+    description=trans("USER_HELP_DESCRIPTION"),
+    color=discord.Color.blurple()
+  )
+
+  embed.add_field(name="/draft team", value=trans("USER_HELP_TEAM_COMMAND"), inline=False)
+  embed.add_field(name="/draft players", value=trans("USER_HELP_PLAYERS_COMMAND"), inline=False)
+  embed.add_field(name="/draft pick", value=trans("USER_HELP_PICK_COMMAND"), inline=False)
+  embed.add_field(name="/draft status", value=trans("USER_HELP_STATUS_COMMAND"), inline=False)
+  embed.add_field(name="/draft help", value=trans("USER_HELP_HELP_COMMAND"), inline=False)
+
+  # is_ephemeral can be set to false only for admins
+  is_ephemeral = is_ephemeral or not any(role.id in ADMIN_ROLES for role in ctx.author.roles)
+
+  await ctx.respond(embed=embed, ephemeral=is_ephemeral)
 
 @draft_command.command(description="Cancels the current draft")
 async def cancel(ctx):
