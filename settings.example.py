@@ -1,7 +1,7 @@
-# The discord server id
-GUILD_ID = 1247849595967508511
+# The discord server 
+GUILD_ID = 1358487043256090964
 # The roles that can use the draft commands
-ADMIN_ROLES = [1247863670948495391, 1247863541998948413]
+ADMIN_ROLES = [1358487043256090970, 1358487043256090972]
 
 # For each milestone, the bot will send a message in the channel
 TIMER_MILESTONES = [60, 30, 10, 5]
@@ -16,6 +16,13 @@ AUTO_RECOVER = True
 LANGUAGE = "fr"
 
 # Tournament acronym
-TOURNAMENT_NAME = "RAWR"
+TOURNAMENT_NAME = "5DFC26"
 # Tournament icon link
-TOURNAMENT_ICON = "https://cdn.discordapp.com/icons/1247849595967508511/a45ca9553a36c44140c610b5721b462f.webp"
+TOURNAMENT_ICON = "https://cdn.discordapp.com/icons/1358487043256090964/a81b2665082537a8ad72989ffafc66d3.webp"
+
+# Spreadsheet push configuration
+SPREADSHEET_PUSH = True
+SPREADSHEET_ID = "1LFw7XHELlFZ1RqiyFKS0b0iDX-zXmjFAqfSPlBeK_98"
+SPREADSHEET_START_ROW = 2
+SPREADSHEET_START_COL = "B"
+SPREADSHEET_SHEET_NAME = "Main"
