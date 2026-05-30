@@ -19,7 +19,7 @@ There are two types of ordering methods for the draft: snake and repeated:
 9. Run the bot with `python main.py`
 10. `/draft` !!!
 
-## How to set up the draft
+## How to set up the draft
 
 You need to create a csv file with the players you want to draft. The csv file should have the following format:
 
