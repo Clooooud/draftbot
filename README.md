@@ -53,7 +53,7 @@ Team3,MiniShaawn,Player1,Player2,Player3,...
 
 This is useful for streaming the draft, as you can just capture the Google Sheet window and it will update in real time as the draft progresses. I recommend making another tab in the same sheet with better formatting and capturing that one instead of the raw data tab.
 
-## Tournaments that used this bot
+## Tournaments that used this bot
 
 - [Ryshult's Archived Waste Recycling (RAWR)](https://osu.ppy.sh/community/forums/topics/2010215?n=1)
 - [5 Digits French Cup 2025 (5DFC25)](https://osu.ppy.sh/community/forums/topics/2067539?n=1)
